@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Bulk WhatsApp Message Sender</title>
+    <style>
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        flex-direction: column;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Bulk WhatsApp Message Sender</h2>
+    <p>Select an Excel file (.xlsx) containing phone numbers:</p>
+
+    <input type="file" id="fileInput" accept=".xlsx" />
+    <button onclick="sendBulkMessages()">Send Messages</button>
+
+    <script>
+      function sendBulkMessages() {
+        let fileInput = document.getElementById("fileInput");
+        let file = fileInput.files[0];
+
+        if (!file) {
+          alert("Please select a file.");
+          return;
+        }
+
+        let reader = new FileReader();
+        reader.onload = function (event) {
+          let data = new Uint8Array(event.target.result);
+          let workbook = XLSX.read(data, { type: "array" });
+
+          let sheetName = workbook.SheetNames[0];
+          let sheet = workbook.Sheets[sheetName];
+          let phoneNumbers = [];
+
+          for (let i = 1; ; i++) {
+            let cell = sheet["A" + i];
+            if (!cell || !cell.v) break;
+
+            let phoneNumber = cell.v.toString().trim();
+            phoneNumbers.push(phoneNumber);
+          }
+
+          let message = "Your invitation message here";
+
+          let index = 0;
+
+          function sendMessage() {
+            if (index < phoneNumbers.length) {
+              let number = phoneNumbers[index];
+              let url = `https://web.whatsapp.com/send?phone=${encodeURIComponent(
+                number
+              )}&text=${encodeURIComponent(message)}`;
+
+              let newTab = window.open(url, "_blank");
+              if (newTab !== null) {
+                setTimeout(() => {
+                  newTab.close();
+                  index++;
+                  sendMessage();
+                }, 2000);
+              } else {
+                console.error(
+                  "Failed to open new tab. Check browser settings or pop-up blocker."
+                );
+                index++;
+                sendMessage();
+              }
+            } else {
+              alert("Messages sent successfully!");
+            }
+          }
+
+          sendMessage();
+        };
+
+        reader.onerror = function (event) {
+          console.error(
+            "File could not be read! Code " + event.target.error.code
+          );
+        };
+        reader.readAsArrayBuffer(file);
+      }
+    </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.0/xlsx.full.min.js"></script>
+  </body>
+</html>
